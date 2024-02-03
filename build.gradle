@@ -2,10 +2,33 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '3.2.2'
 	id 'io.spring.dependency-management' version '1.1.4'
+	id 'com.google.cloud.tools.jib' version '3.4.0'
 }
 
 group = 'com.example'
 version = '0.0.1-SNAPSHOT'
+
+jib {
+	from {
+		image = "eclipse-temurin:21-jdk-alpine"
+	}
+	to {
+		image = "${group}/cashcard"
+		tags = [version, 'latest']
+	}
+	container {
+		mainClass = "${group}.${project.name}.CashCardApplication"
+		jvmFlags = ["-Xms${findProperty('MEMORY')?:'256'}m", '-Xdebug']
+		ports = ['80']
+		volumes = ['/data']
+		environment = [
+			'VERSION': version,
+			'DATA_DIR': '/data',
+			'APPLICATION_PORT' : '80',
+			'DEVELOPMENT_MODE' : 'false'
+		]
+	}
+}
 
 java {
 	sourceCompatibility = '21'
@@ -28,6 +51,18 @@ dependencies {
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
+// custom bootBuildImage command (envs, builder, runImage, ...)
+// ref. https://docs.spring.io/spring-boot/docs/current/gradle-plugin/reference/htmlsingle/#build-image.examples.custom-image-builder
+tasks.named("bootBuildImage") {
+	// project.name = "cashcard"
+	imageName = "${group}/${project.name}"
+}
+
+// for custom layers
+// bootJar {
+// 	layered()
+// }
 
 // This section causes useful test output to go to the terminal.
 test {
